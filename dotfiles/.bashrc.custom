@@ -1,0 +1,77 @@
+# alias goes here
+alias restart-terminal="source ~/.bashrc"
+alias start-nginx="PWD=pwd; docker run -d --rm --name static-bash-nginx -p 8080:80 -v $PWD:/usr/share/nginx/html nginx:1.17-alpine; echo \"Nginx server started on port 8080\""
+alias stop-nginx="docker stop static-bash-nginx"
+alias virtual-cam="sudo modprobe v4l2loopback devices=1 exclusive_caps=1"
+alias docker-compose="podman-compose"
+alias la="ls -a"
+alias meh="echo '¯\\_(ツ)_/¯' && echo '¯\\_(ツ)_/¯' | xclip -selection c"
+function whos-listening() {
+  lsof -i tcp:"$1"
+}
+source <(kubectl completion bash)
+alias k=kubectl 
+complete -F __start_kubectl k
+
+# Add to path
+export PATH=~/bin:$PATH
+export PATH=$PATH:/usr/local/go/bin
+
+# Env vars
+export GOPATH=~/Code/go
+
+# get current branch in git repo
+function parse_git_branch() {
+	BRANCH=`git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'`
+	if [ ! "${BRANCH}" == "" ]
+	then
+		STAT=`parse_git_dirty`
+		echo "[${BRANCH}${STAT}]"
+	else
+		echo ""
+	fi
+}
+
+# get current status of git repo
+function parse_git_dirty {
+	status=`git status 2>&1 | tee`
+	dirty=`echo -n "${status}" 2> /dev/null | grep "modified:" &> /dev/null; echo "$?"`
+	untracked=`echo -n "${status}" 2> /dev/null | grep "Untracked files" &> /dev/null; echo "$?"`
+	ahead=`echo -n "${status}" 2> /dev/null | grep "Your branch is ahead of" &> /dev/null; echo "$?"`
+	newfile=`echo -n "${status}" 2> /dev/null | grep "new file:" &> /dev/null; echo "$?"`
+	renamed=`echo -n "${status}" 2> /dev/null | grep "renamed:" &> /dev/null; echo "$?"`
+	deleted=`echo -n "${status}" 2> /dev/null | grep "deleted:" &> /dev/null; echo "$?"`
+	bits=''
+	if [ "${renamed}" == "0" ]; then
+		bits=">${bits}"
+	fi
+	if [ "${ahead}" == "0" ]; then
+		bits="*${bits}"
+	fi
+	if [ "${newfile}" == "0" ]; then
+		bits="+${bits}"
+	fi
+	if [ "${untracked}" == "0" ]; then
+		bits="?${bits}"
+	fi
+	if [ "${deleted}" == "0" ]; then
+		bits="x${bits}"
+	fi
+	if [ "${dirty}" == "0" ]; then
+		bits="!${bits}"
+	fi
+	if [ ! "${bits}" == "" ]; then
+		echo " ${bits}"
+	else
+		echo ""
+	fi
+}
+
+export PS1='\
+`export CODE=$? && if [[ $CODE != 0 ]]; then echo -n "\[\e[31m\]✗ ("$CODE") "; else echo -n "\[\e[32m\]✔ "; fi`\
+\[\e[90m\]\W\[\e[m\] \[\e[36m\]\
+`parse_git_branch`\
+\[\e[m\] \$ '
+
+## Change to starship font
+eval "$(starship init bash)"
